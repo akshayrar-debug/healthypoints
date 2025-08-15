@@ -262,7 +262,6 @@
                 imagePreviewGallery.appendChild(thumbContainer);
             });
             
-            // Add the "add more" button to the gallery
             const addMoreContainer = document.createElement('div');
             const addMoreBtn = document.createElement('button');
             addMoreBtn.id = 'add-more-button';
@@ -378,7 +377,7 @@
 
         async function getHealthyRecommendation(menuItems, preferences) {
             const prompt = `
-                You are a helpful nutrition expert. Given the following menu items in JSON format, and the user's preferences, provide a recommendation for the healthiest meal for one person. The currency is specified in the menu items.
+                You are a helpful nutrition expert. Given the following menu items in JSON format, and the user's preferences, provide a recommendation for the healthiest meal for one person.
 
                 **User Preferences:**
                 - Dietary Preference: ${preferences.diet}
@@ -387,14 +386,12 @@
                 **Menu Items:** ${JSON.stringify(menuItems)}
 
                 **Your Task:**
-                1.  Analyze the menu items based on the user's preferences.
-                2.  Recommend a healthy and balanced meal combination for one person.
-                3.  Strictly adhere to the dietary preference.
-                4.  Strictly avoid any items containing the specified items to avoid.
-                5.  Calculate the total price for the recommended items. Only include items that have a price. If no recommended items have a price, the total should be 0.
-                6.  Determine the currency symbol from the first item that has one.
-                7.  Provide a single, combined nutritional summary (calories, protein, carbs, fat).
-                8.  Write a brief, encouraging explanation for why this meal is a good choice.
+                1.  Find up to 3 healthiest dishes that match the user's preferences. These are the "topRecommendations".
+                2.  For EACH of the top recommendations, provide a detailed, single-paragraph explanation covering the dish, its likely ingredients, and its estimated macronutrient profile.
+                3.  If more than 3 matching healthy dishes exist, provide an additional list of up to 3 "moreRecommendations" containing only the dish names.
+                4.  For the top recommendations, calculate the total price. Only include items that have a price.
+                5.  Determine the currency symbol from the first item that has one.
+                6.  Provide a single, combined nutritional summary for ONLY the top recommendations.
 
                 Return the result as a single JSON object with the following structure.
             `;
@@ -406,14 +403,23 @@
                     responseSchema: {
                         type: "OBJECT",
                         properties: {
-                            "recommendedItems": {
+                            "topRecommendations": {
                                 type: "ARRAY",
                                 items: {
                                     type: "OBJECT",
                                     properties: {
                                         "name": { "type": "STRING" },
                                         "price": { "type": "NUMBER", "nullable": true },
-                                        "quantity": { "type": "NUMBER" }
+                                        "explanation": { "type": "STRING" }
+                                    }
+                                }
+                            },
+                            "moreRecommendations": {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "name": { "type": "STRING" }
                                     }
                                 }
                             },
@@ -427,10 +433,9 @@
                                     "carbs": { "type": "STRING" },
                                     "fat": { "type": "STRING" }
                                 }
-                            },
-                            "explanation": { "type": "STRING" }
+                            }
                         },
-                        required: ["recommendedItems", "totalPrice", "currencySymbol", "nutrition", "explanation"]
+                        required: ["topRecommendations", "moreRecommendations", "totalPrice", "currencySymbol", "nutrition"]
                     }
                 }
             };
@@ -457,14 +462,18 @@
             let html = `
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
                     <h3 class="text-lg font-semibold text-gray-800">Your Recommendation</h3>
-                    <div class="mt-2 space-y-1">
+                    <div id="top-recs-list" class="mt-2 space-y-1">
             `;
 
-            recommendation.recommendedItems.forEach(item => {
-                const priceDisplay = item.price !== null ? `${recommendation.currencySymbol}${(item.price * item.quantity).toFixed(2)}` : 'N/A';
+            if (recommendation.topRecommendations.length === 0) {
+                 html += `<p class="text-gray-600">Sorry, no suitable options could be found based on your preferences.</p>`;
+            }
+
+            recommendation.topRecommendations.forEach(item => {
+                const priceDisplay = item.price !== null ? `${recommendation.currencySymbol}${item.price.toFixed(2)}` : 'N/A';
                 html += `
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-700">${item.quantity} x ${item.name}</span>
+                        <span class="text-gray-700">${item.name}</span>
                         <span class="font-medium text-gray-900">${priceDisplay}</span>
                     </div>
                 `;
@@ -483,10 +492,46 @@
             } else {
                  html += `</div></div>`;
             }
+            
+            if (recommendation.topRecommendations.length > 0 && recommendation.topRecommendations.length < 3) {
+                html += `<p class="text-xs text-center text-gray-500 mt-2">These are the only available options based on your preferences.</p>`;
+            }
+
+            // "Why it's a good choice" section
+            if (recommendation.topRecommendations.length > 0) {
+                html += `
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mt-6">
+                        <h3 class="text-lg font-semibold text-gray-800">Why It's a Good Choice</h3>
+                        <div class="mt-2 text-gray-700 space-y-4">
+                `;
+                recommendation.topRecommendations.forEach(item => {
+                    html += `
+                        <div>
+                            <h4 class="font-semibold">${item.name}</h4>
+                            <p class="text-sm">${item.explanation}</p>
+                        </div>
+                    `;
+                });
+                html += `</div></div>`;
+            }
+
+
+            if (recommendation.moreRecommendations.length > 0) {
+                html += `
+                    <div id="more-recs-container" class="mt-4">
+                        <button id="show-more-btn" class="text-sm text-blue-600 hover:underline">Show more</button>
+                        <div id="more-recs-list" class="hidden mt-2 space-y-1 text-gray-600">
+                `;
+                recommendation.moreRecommendations.forEach(item => {
+                    html += `<p>${item.name}</p>`;
+                });
+                html += `</div></div>`;
+            }
+
 
             html += `
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (Total)</h3>
+                <div class="bg-gray-50 p-4 rounded-lg mt-6">
+                    <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (Total for Top Picks)</h3>
                     <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                         <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.calories}</span></div>
                         <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.protein}</span></div>
@@ -494,13 +539,16 @@
                         <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.fat}</span></div>
                     </div>
                 </div>
-
-                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                    <h3 class="text-lg font-semibold text-gray-800">Why It's a Good Choice</h3>
-                    <p class="mt-2 text-gray-700">${recommendation.explanation}</p>
-                </div>
             `;
             recommendationOutput.innerHTML = html;
+
+            const showMoreBtn = document.getElementById('show-more-btn');
+            if (showMoreBtn) {
+                showMoreBtn.addEventListener('click', () => {
+                    document.getElementById('more-recs-list').classList.remove('hidden');
+                    showMoreBtn.classList.add('hidden');
+                });
+            }
         }
 
         function resetApp() {
