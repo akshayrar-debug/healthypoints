@@ -394,7 +394,7 @@
 
                 **Your Task:**
                 1.  Find up to 3 healthiest dishes that match the user's preferences. These are the "topRecommendations".
-                2.  For EACH of the top recommendations, provide a detailed, single-paragraph explanation covering the dish and its likely ingredients. Also provide an individual nutritional breakdown (calories, protein, carbs, fat).
+                2.  For EACH of the top recommendations, provide a detailed, single-paragraph explanation covering the dish and its likely ingredients. Also provide an individual nutritional breakdown (calories, protein, carbs, fat). For protein, carbs, and fat, the unit should be 'g'.
                 3.  If more than 3 matching healthy dishes exist, provide an additional list of up to 3 "moreRecommendations" containing only the dish names.
                 4.  For the top recommendations, calculate the total price. Only include items that have a price.
                 5.  Determine the currency symbol from the first item that has one.
@@ -532,9 +532,12 @@
                         <div>
                             <h4 class="font-semibold">${item.name}</h4>
                             <p class="text-sm">${item.explanation}</p>
-                            <p class="text-xs text-gray-500 mt-1">
-                                Est: ${item.nutrition.calories} Cal, ${item.nutrition.protein}g P, ${item.nutrition.carbs}g C, ${item.nutrition.fat}g F
-                            </p>
+                            <div class="text-xs bg-gray-100 rounded-full px-3 py-1 mt-2 inline-block">
+                                <span class="font-semibold">Cal:</span> ${item.nutrition.calories}kcal &nbsp;&nbsp;
+                                <span class="font-semibold">P:</span> ${item.nutrition.protein}g &nbsp;&nbsp;
+                                <span class="font-semibold">C:</span> ${item.nutrition.carbs}g &nbsp;&nbsp;
+                                <span class="font-semibold">F:</span> ${item.nutrition.fat}g
+                            </div>
                         </div>
                     `;
                 });
@@ -545,7 +548,7 @@
             if (recommendation.moreRecommendations.length > 0) {
                 html += `
                     <div id="more-recs-container" class="mt-4 bg-gray-50 p-4 rounded-lg">
-                         <h3 class="text-md font-semibold text-gray-700">More Healthy Options</h3>
+                         <h3 class="text-md font-semibold text-gray-700">Additional Options</h3>
                         <button id="show-more-btn" class="text-sm text-blue-600 hover:underline">Show more</button>
                         <div id="more-recs-list" class="hidden mt-2 space-y-1 text-gray-600">
                 `;
