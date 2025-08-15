@@ -168,11 +168,6 @@
             <div id="recommendation-output" class="mt-6 space-y-6">
                 <!-- Recommendations will be injected here -->
             </div>
-            <div class="mt-8">
-                <button id="reset-button" class="w-full bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-transform transform hover:scale-105">
-                    Scan Another
-                </button>
-            </div>
             <div class="mt-6 text-center text-xs text-gray-500">
                 <p>Disclaimer: Nutritional and ingredient information is an estimate and may vary based on preparation. Please verify with the restaurant for any dietary concerns.</p>
             </div>
@@ -203,7 +198,6 @@
         const homeButtonPrefs = document.getElementById('home-button-prefs');
         const homeButtonResults = document.getElementById('home-button-results');
         const analyzeButton = document.getElementById('analyze-button');
-        const resetButton = document.getElementById('reset-button');
         
         const recommendationOutput = document.getElementById('recommendation-output');
         const errorMessage = document.getElementById('error-message');
@@ -230,7 +224,6 @@
         imageInput.addEventListener('change', handleImageSelection);
         confirmPhotosButton.addEventListener('click', () => showScreen('preferences'));
         analyzeButton.addEventListener('click', handleAnalysis);
-        resetButton.addEventListener('click', resetApp);
 
         // --- Core Functions ---
 
@@ -401,7 +394,7 @@
 
                 **Your Task:**
                 1.  Find up to 3 healthiest dishes that match the user's preferences. These are the "topRecommendations".
-                2.  For EACH of the top recommendations, provide a detailed, single-paragraph explanation covering the dish, its likely ingredients, and its estimated macronutrient profile.
+                2.  For EACH of the top recommendations, provide a detailed, single-paragraph explanation covering the dish and its likely ingredients. Also provide an individual nutritional breakdown (calories, protein, carbs, fat).
                 3.  If more than 3 matching healthy dishes exist, provide an additional list of up to 3 "moreRecommendations" containing only the dish names.
                 4.  For the top recommendations, calculate the total price. Only include items that have a price.
                 5.  Determine the currency symbol from the first item that has one.
@@ -424,7 +417,16 @@
                                     properties: {
                                         "name": { "type": "STRING" },
                                         "price": { "type": "NUMBER", "nullable": true },
-                                        "explanation": { "type": "STRING" }
+                                        "explanation": { "type": "STRING" },
+                                        "nutrition": {
+                                            type: "OBJECT",
+                                            properties: {
+                                                "calories": { "type": "STRING" },
+                                                "protein": { "type": "STRING" },
+                                                "carbs": { "type": "STRING" },
+                                                "fat": { "type": "STRING" }
+                                            }
+                                        }
                                     }
                                 }
                             },
@@ -439,7 +441,7 @@
                             },
                             "totalPrice": { "type": "NUMBER" },
                             "currencySymbol": { "type": "STRING" },
-                            "nutrition": {
+                            "totalNutrition": {
                                 type: "OBJECT",
                                 properties: {
                                     "calories": { "type": "STRING" },
@@ -450,7 +452,7 @@
                                 }
                             }
                         },
-                        required: ["topRecommendations", "moreRecommendations", "totalPrice", "currencySymbol", "nutrition"]
+                        required: ["topRecommendations", "moreRecommendations", "totalPrice", "currencySymbol", "totalNutrition"]
                     }
                 }
             };
@@ -519,7 +521,10 @@
             if (recommendation.topRecommendations.length > 0) {
                 html += `
                     <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mt-6">
-                        <h3 class="text-lg font-semibold text-gray-800">Why It's a Good Choice</h3>
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-lg font-semibold text-gray-800">Why It's a Good Choice</h3>
+                            <span class="text-sm font-medium text-gray-700">Total Calories: ${recommendation.totalNutrition.calories}</span>
+                        </div>
                         <div class="mt-2 text-gray-700 space-y-4">
                 `;
                 recommendation.topRecommendations.forEach(item => {
@@ -527,6 +532,9 @@
                         <div>
                             <h4 class="font-semibold">${item.name}</h4>
                             <p class="text-sm">${item.explanation}</p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Est: ${item.nutrition.calories} Cal, ${item.nutrition.protein}g P, ${item.nutrition.carbs}g C, ${item.nutrition.fat}g F
+                            </p>
                         </div>
                     `;
                 });
@@ -536,7 +544,8 @@
 
             if (recommendation.moreRecommendations.length > 0) {
                 html += `
-                    <div id="more-recs-container" class="mt-4">
+                    <div id="more-recs-container" class="mt-4 bg-gray-50 p-4 rounded-lg">
+                         <h3 class="text-md font-semibold text-gray-700">More Healthy Options</h3>
                         <button id="show-more-btn" class="text-sm text-blue-600 hover:underline">Show more</button>
                         <div id="more-recs-list" class="hidden mt-2 space-y-1 text-gray-600">
                 `;
@@ -551,11 +560,11 @@
                 <div class="bg-gray-50 p-4 rounded-lg mt-6">
                     <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (per portion)</h3>
                     <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                        <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.calories}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.protein}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-600">Carbs:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.carbs}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.fat}</span></div>
-                        <div class="flex justify-between col-span-2"><span class="text-gray-600">Portion Size:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.portionSize}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.calories}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.protein}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Carbs:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.carbs}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.fat}</span></div>
+                        <div class="flex justify-between col-span-2"><span class="text-gray-600">Portion Size:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.portionSize}</span></div>
                     </div>
                 </div>
             `;
