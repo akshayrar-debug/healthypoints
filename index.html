@@ -85,7 +85,7 @@
 
         <!-- Image Preview Screen -->
         <div id="preview-screen" class="hidden">
-            <button id="home-button" class="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-200 transition-colors">
+            <button id="home-button-preview" class="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-200 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
@@ -101,7 +101,12 @@
         
         <!-- Preferences Screen -->
         <div id="preferences-screen" class="hidden">
-            <h2 class="text-2xl font-bold text-gray-900 text-center">Tell Us Your Preferences</h2>
+            <button id="home-button-prefs" class="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </button>
+            <h2 class="text-2xl font-bold text-gray-900 text-center pt-8">Tell Us Your Preferences</h2>
             <div class="mt-6 space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Dietary Preferences</label>
@@ -154,7 +159,12 @@
 
         <!-- Results Screen -->
         <div id="results-screen" class="hidden fade-in">
-            <h2 class="text-2xl font-bold text-gray-900 text-center">Your Recommendation</h2>
+             <button id="home-button-results" class="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </button>
+            <h2 class="text-2xl font-bold text-gray-900 text-center pt-8">Your Recommendation</h2>
             <div id="recommendation-output" class="mt-6 space-y-6">
                 <!-- Recommendations will be injected here -->
             </div>
@@ -189,7 +199,9 @@
         const imageInput = document.getElementById('menu-image-input');
         const imagePreviewGallery = document.getElementById('image-preview-gallery');
         const confirmPhotosButton = document.getElementById('confirm-photos-button');
-        const homeButton = document.getElementById('home-button');
+        const homeButtonPreview = document.getElementById('home-button-preview');
+        const homeButtonPrefs = document.getElementById('home-button-prefs');
+        const homeButtonResults = document.getElementById('home-button-results');
         const analyzeButton = document.getElementById('analyze-button');
         const resetButton = document.getElementById('reset-button');
         
@@ -212,7 +224,9 @@
             imageInput.removeAttribute('capture');
             imageInput.click();
         });
-        homeButton.addEventListener('click', resetApp);
+        homeButtonPreview.addEventListener('click', resetApp);
+        homeButtonPrefs.addEventListener('click', resetApp);
+        homeButtonResults.addEventListener('click', resetApp);
         imageInput.addEventListener('change', handleImageSelection);
         confirmPhotosButton.addEventListener('click', () => showScreen('preferences'));
         analyzeButton.addEventListener('click', handleAnalysis);
@@ -391,7 +405,7 @@
                 3.  If more than 3 matching healthy dishes exist, provide an additional list of up to 3 "moreRecommendations" containing only the dish names.
                 4.  For the top recommendations, calculate the total price. Only include items that have a price.
                 5.  Determine the currency symbol from the first item that has one.
-                6.  Provide a single, combined nutritional summary for ONLY the top recommendations.
+                6.  Provide a single, combined nutritional summary for ONLY the top recommendations. Include an estimated portion size in grams (e.g., "approx. 250g").
 
                 Return the result as a single JSON object with the following structure.
             `;
@@ -431,7 +445,8 @@
                                     "calories": { "type": "STRING" },
                                     "protein": { "type": "STRING" },
                                     "carbs": { "type": "STRING" },
-                                    "fat": { "type": "STRING" }
+                                    "fat": { "type": "STRING" },
+                                    "portionSize": { "type": "STRING" }
                                 }
                             }
                         },
@@ -469,12 +484,15 @@
                  html += `<p class="text-gray-600">Sorry, no suitable options could be found based on your preferences.</p>`;
             }
 
-            recommendation.topRecommendations.forEach(item => {
-                const priceDisplay = item.price !== null ? `${recommendation.currencySymbol}${item.price.toFixed(2)}` : 'N/A';
+            recommendation.topRecommendations.forEach((item, index) => {
+                let priceHtml = '';
+                if (item.price !== null) {
+                    priceHtml = `<span class="font-medium text-gray-900">${recommendation.currencySymbol}${item.price.toFixed(2)}</span>`;
+                }
                 html += `
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-700">${item.name}</span>
-                        <span class="font-medium text-gray-900">${priceDisplay}</span>
+                        <span class="text-gray-700">${index + 1}. ${item.name}</span>
+                        ${priceHtml}
                     </div>
                 `;
             });
@@ -531,12 +549,13 @@
 
             html += `
                 <div class="bg-gray-50 p-4 rounded-lg mt-6">
-                    <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (Total for Top Picks)</h3>
+                    <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (per portion)</h3>
                     <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                         <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.calories}</span></div>
                         <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.protein}</span></div>
                         <div class="flex justify-between"><span class="text-gray-600">Carbs:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.carbs}</span></div>
                         <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.fat}</span></div>
+                        <div class="flex justify-between col-span-2"><span class="text-gray-600">Portion Size:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.portionSize}</span></div>
                     </div>
                 </div>
             `;
