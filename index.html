@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthy Menu Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .thumbnail-container {
+            position: relative;
+        }
+        .remove-btn {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.5rem;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            border-radius: 50%;
+            width: 1.75rem;
+            height: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8">
+        
+        <!-- Splash Screen -->
+        <div id="splash-screen">
+            <div class="text-center">
+                <svg class="mx-auto h-16 w-16 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l1.5 1.5 3-3.75M12 18.75a6.75 6.75 0 006.75-6.75H5.25A6.75 6.75 0 0012 18.75z" />
+                </svg>
+                <h1 class="mt-4 text-2xl font-bold text-gray-900">Healthy Menu Scanner</h1>
+                <p class="mt-2 text-gray-600">Snap photos of your menu and get instant, healthy meal recommendations.</p>
+            </div>
+            <div class="mt-8">
+                <input type="file" id="menu-image-input" accept="image/*" class="hidden" multiple>
+                <button id="scan-button" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-transform transform hover:scale-105">
+                    Select Menu Photos
+                </button>
+            </div>
+        </div>
+
+        <!-- Image Preview Screen -->
+        <div id="preview-screen" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-900 text-center">Your Selected Photos</h2>
+            <div id="image-preview-gallery" class="mt-4 grid grid-cols-3 gap-4 max-h-64 overflow-y-auto p-2 bg-gray-50 rounded-lg">
+                <!-- Image thumbnails will be injected here -->
+            </div>
+            <div class="mt-6 flex flex-col space-y-4">
+                 <button id="add-more-button" class="w-full bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-600">Add More Photos</button>
+                <button id="confirm-photos-button" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700">Next: Add Preferences</button>
+                <button id="cancel-button" class="w-full bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Start Over</button>
+            </div>
+        </div>
+        
+        <!-- Preferences Screen -->
+        <div id="preferences-screen" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-900 text-center">Tell Us Your Preferences</h2>
+            <div class="mt-6 space-y-4">
+                <div>
+                    <label for="people-count" class="block text-sm font-medium text-gray-700">How many people are you ordering for?</label>
+                    <input type="number" id="people-count" name="people-count" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Dietary Preferences</label>
+                    <div class="mt-2 space-y-2">
+                        <div class="flex items-center">
+                            <input id="pref-any" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Any" checked>
+                            <label for="pref-any" class="ml-3 block text-sm font-medium text-gray-700">Anything is fine</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="pref-veg" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Vegetarian">
+                            <label for="pref-veg" class="ml-3 block text-sm font-medium text-gray-700">Vegetarian</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="pref-vegan" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Vegan">
+                            <label for="pref-vegan" class="ml-3 block text-sm font-medium text-gray-700">Vegan</label>
+                        </div>
+                         <div class="flex items-center">
+                            <input id="pref-jain" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Jain">
+                            <label for="pref-jain" class="ml-3 block text-sm font-medium text-gray-700">Jain</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="allergies" class="block text-sm font-medium text-gray-700">Allergies or items to avoid?</label>
+                    <input type="text" id="allergies" name="allergies" placeholder="e.g., peanuts, gluten, very spicy" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+            </div>
+             <div class="mt-8">
+                <button id="analyze-button" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700">Get Recommendations</button>
+            </div>
+        </div>
+
+
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="hidden">
+            <div class="flex flex-col items-center justify-center text-center">
+                <div class="loader"></div>
+                <p id="loading-message" class="mt-4 text-gray-700 font-medium">Analyzing menu...</p>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="results-screen" class="hidden fade-in">
+            <h2 class="text-2xl font-bold text-gray-900 text-center">Your Healthy Recommendation</h2>
+            <div id="recommendation-output" class="mt-6 space-y-6">
+                <!-- Recommendations will be injected here -->
+            </div>
+            <div class="mt-8 flex space-x-4">
+                <button id="speak-button" class="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    Hear Why
+                </button>
+                <button id="reset-button" class="flex-1 bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-transform transform hover:scale-105">
+                    Scan Another
+                </button>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-message" class="hidden mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+            <strong class="font-bold">Oops!</strong>
+            <span class="block sm:inline" id="error-text">Something went wrong.</span>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const splashScreen = document.getElementById('splash-screen');
+        const previewScreen = document.getElementById('preview-screen');
+        const preferencesScreen = document.getElementById('preferences-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        
+        const scanButton = document.getElementById('scan-button');
+        const imageInput = document.getElementById('menu-image-input');
+        const imagePreviewGallery = document.getElementById('image-preview-gallery');
+        const confirmPhotosButton = document.getElementById('confirm-photos-button');
+        const cancelButton = document.getElementById('cancel-button');
+        const addMoreButton = document.getElementById('add-more-button');
+        const analyzeButton = document.getElementById('analyze-button');
+        const speakButton = document.getElementById('speak-button');
+        const resetButton = document.getElementById('reset-button');
+        
+        const recommendationOutput = document.getElementById('recommendation-output');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const loadingMessage = document.getElementById('loading-message');
+
+        // --- State ---
+        let recommendationTextToSpeak = "";
+        let selectedImagesData = []; // Will store { url, base64 } objects
+        
+        // --- Event Listeners ---
+        scanButton.addEventListener('click', () => imageInput.click());
+        addMoreButton.addEventListener('click', () => imageInput.click());
+        cancelButton.addEventListener('click', resetApp);
+        imageInput.addEventListener('change', handleImageSelection);
+        confirmPhotosButton.addEventListener('click', () => showScreen('preferences'));
+        analyzeButton.addEventListener('click', handleAnalysis);
+        resetButton.addEventListener('click', resetApp);
+        speakButton.addEventListener('click', handleSpeak);
+
+        // --- Core Functions ---
+
+        async function handleImageSelection(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            showLoading('Processing images...');
+
+            try {
+                for (const file of files) {
+                    const base64 = await fileToBase64(file);
+                    const url = URL.createObjectURL(file);
+                    selectedImagesData.push({ url, base64 });
+                }
+                renderImagePreviews();
+                showScreen('preview');
+            } catch (error) {
+                console.error("Error reading files:", error);
+                showError("Could not read the selected files.");
+                resetApp();
+            }
+        }
+
+        function renderImagePreviews() {
+            imagePreviewGallery.innerHTML = '';
+            selectedImagesData.forEach((imageData, index) => {
+                const thumbContainer = document.createElement('div');
+                thumbContainer.className = 'thumbnail-container';
+
+                const img = document.createElement('img');
+                img.src = imageData.url;
+                img.className = 'w-full h-24 object-cover rounded-md';
+                
+                const removeBtn = document.createElement('div');
+                removeBtn.className = 'remove-btn';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.dataset.index = index;
+                removeBtn.onclick = removeImage;
+
+                thumbContainer.appendChild(img);
+                thumbContainer.appendChild(removeBtn);
+                imagePreviewGallery.appendChild(thumbContainer);
+            });
+        }
+        
+        function removeImage(event) {
+            const indexToRemove = parseInt(event.target.dataset.index, 10);
+            URL.revokeObjectURL(selectedImagesData[indexToRemove].url);
+            selectedImagesData.splice(indexToRemove, 1);
+            renderImagePreviews();
+        }
+
+        async function handleAnalysis() {
+            if (selectedImagesData.length === 0) {
+                showError("Please select at least one menu photo.");
+                return;
+            }
+
+            showLoading('Reading menu...');
+            hideError();
+
+            const userPreferences = {
+                people: document.getElementById('people-count').value,
+                diet: document.querySelector('input[name="preference"]:checked').value,
+                allergies: document.getElementById('allergies').value
+            };
+
+            try {
+                const base64Images = selectedImagesData.map(d => d.base64);
+                const menuItems = await extractMenuItems(base64Images);
+                if (!menuItems || menuItems.length === 0) {
+                    throw new Error("The AI couldn't find any menu items. Please try clearer photos.");
+                }
+
+                showLoading('Finding personalized recommendations...');
+                const recommendation = await getHealthyRecommendation(menuItems, userPreferences);
+
+                displayResults(recommendation);
+                showScreen('results');
+
+            } catch (error) {
+                console.error("Error during processing:", error);
+                showError(error.message || "An unknown error occurred.");
+                resetApp(); 
+            }
+        }
+
+        async function extractMenuItems(imagesBase64Array) {
+            const parts = [
+                { text: "Analyze the images of a restaurant menu from India. The prices will be in Indian Rupees (INR). Extract all menu items, their full descriptions, and prices from all images combined. Return a single JSON array where each object has 'itemName', 'itemDescription', and 'itemPrice' as a number. Ignore non-menu text." }
+            ];
+
+            imagesBase64Array.forEach(base64String => {
+                parts.push({
+                    inlineData: {
+                        mimeType: "image/jpeg",
+                        data: base64String
+                    }
+                });
+            });
+
+            const payload = {
+                contents: [{ parts }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "itemName": { "type": "STRING" },
+                                "itemDescription": { "type": "STRING" },
+                                "itemPrice": { "type": "NUMBER" }
+                            },
+                            required: ["itemName", "itemDescription", "itemPrice"]
+                        }
+                    }
+                }
+            };
+            const response = await makeApiCall('vision', payload);
+            
+            if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
+                console.error("Invalid API response structure from Vision model:", response);
+                throw new Error("The AI model returned an unexpected response. Please try again.");
+            }
+
+            const jsonText = response.candidates[0].content.parts[0].text;
+            
+            try {
+                return JSON.parse(jsonText);
+            } catch (e) {
+                console.error("Failed to parse JSON from Vision model:", jsonText);
+                throw new Error("The AI model returned malformed data. Please try again.");
+            }
+        }
+
+        async function getHealthyRecommendation(menuItems, preferences) {
+            const prompt = `
+                You are a helpful nutrition expert and meal planner. Given the following menu items in JSON format from an Indian restaurant, and the user's preferences, please provide a recommendation for the healthiest meal. The prices are in Indian Rupees (INR).
+
+                **User Preferences:**
+                - Number of People: ${preferences.people}
+                - Dietary Preference: ${preferences.diet}
+                - Allergies / Items to Avoid: ${preferences.allergies || 'None specified'}
+
+                **Menu Items:** ${JSON.stringify(menuItems)}
+
+                **Your Task:**
+                1.  Analyze the menu items based on the user's preferences.
+                2.  Recommend a healthy and balanced meal combination suitable for the specified number of people.
+                3.  Strictly adhere to the dietary preference (e.g., if vegetarian, only suggest vegetarian items).
+                4.  Strictly avoid any items containing the specified allergies.
+                5.  Calculate the total price for the entire recommended meal in INR.
+                6.  Provide a single, combined nutritional summary (calories, protein, carbs, fat) for the entire recommended order.
+                7.  Write a brief, encouraging explanation for why this meal is a good choice for the group.
+
+                Return the result as a single JSON object with the following structure.
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "recommendedItems": {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "name": { "type": "STRING" },
+                                        "price": { "type": "NUMBER" },
+                                        "quantity": { "type": "NUMBER" }
+                                    }
+                                }
+                            },
+                            "totalPrice": { "type": "NUMBER" },
+                            "nutrition": {
+                                type: "OBJECT",
+                                properties: {
+                                    "calories": { "type": "STRING" },
+                                    "protein": { "type": "STRING" },
+                                    "carbs": { "type": "STRING" },
+                                    "fat": { "type": "STRING" }
+                                }
+                            },
+                            "explanation": { "type": "STRING" }
+                        },
+                        required: ["recommendedItems", "totalPrice", "nutrition", "explanation"]
+                    }
+                }
+            };
+            const response = await makeApiCall('vision', payload);
+            
+            if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
+                console.error("Invalid API response structure from Recommendation model:", response);
+                throw new Error("The AI model returned an unexpected response while analyzing nutrition.");
+            }
+
+            const jsonText = response.candidates[0].content.parts[0].text;
+            
+            try {
+                return JSON.parse(jsonText);
+            } catch (e) {
+                console.error("Failed to parse JSON from Recommendation model:", jsonText);
+                throw new Error("The AI model returned malformed data while analyzing nutrition.");
+            }
+        }
+        
+        async function handleSpeak() {
+            if (!recommendationTextToSpeak) return;
+            speakButton.disabled = true;
+            speakButton.textContent = 'Speaking...';
+
+            try {
+                const payload = {
+                    contents: [{
+                        parts: [{ text: `Say this in a friendly and encouraging tone: ${recommendationTextToSpeak}` }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: "Puck" }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const response = await makeApiCall('tts', payload);
+                
+                const part = response?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, 1, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    audio.onended = () => {
+                        speakButton.disabled = false;
+                        speakButton.textContent = 'Hear Why';
+                    };
+                } else {
+                    console.error("Invalid API response structure from TTS model:", response);
+                    throw new Error("Invalid audio data received.");
+                }
+
+            } catch (error) {
+                console.error("TTS Error:", error);
+                showError("Sorry, I couldn't speak the recommendation.");
+                speakButton.disabled = false;
+                speakButton.textContent = 'Hear Why';
+            }
+        }
+
+        // --- UI Display Functions ---
+
+        function displayResults(recommendation) {
+            recommendationTextToSpeak = recommendation.explanation;
+            let html = `
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                    <h3 class="text-lg font-semibold text-gray-800">Your Group's Recommendation</h3>
+                    <div class="mt-2 space-y-1">
+            `;
+
+            recommendation.recommendedItems.forEach(item => {
+                html += `
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">${item.quantity} x ${item.name}</span>
+                        <span class="font-medium text-gray-900">₹${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                    <hr class="my-3 border-green-200">
+                    <div class="flex justify-between items-center font-bold text-lg">
+                        <span>Total</span>
+                        <span>₹${recommendation.totalPrice.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (Total)</h3>
+                    <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.calories}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.protein}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Carbs:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.carbs}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${recommendation.nutrition.fat}</span></div>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                    <h3 class="text-lg font-semibold text-gray-800">Why It's a Good Choice</h3>
+                    <p class="mt-2 text-gray-700">${recommendation.explanation}</p>
+                </div>
+            `;
+            recommendationOutput.innerHTML = html;
+        }
+
+        function resetApp() {
+            showScreen('splash');
+            imageInput.value = ''; 
+            selectedImagesData.forEach(d => URL.revokeObjectURL(d.url));
+            selectedImagesData = [];
+            imagePreviewGallery.innerHTML = '';
+            recommendationOutput.innerHTML = '';
+            recommendationTextToSpeak = '';
+            hideError();
+        }
+
+        // --- UI State Changers ---
+        function showScreen(screenName) {
+            ['splash', 'preview', 'preferences', 'loading', 'results'].forEach(id => {
+                document.getElementById(`${id}-screen`).classList.add('hidden');
+            });
+            document.getElementById(`${screenName}-screen`).classList.remove('hidden');
+        }
+
+        function showLoading(message) {
+            loadingMessage.textContent = message;
+            showScreen('loading');
+        }
+
+        function showError(message) {
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // --- Utility Functions ---
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+        
+        async function makeApiCall(targetApi, payload) {
+            const url = targetApi === 'vision' ? API_URL_VISION : API_URL_TTS;
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(errorBody.error?.message || `API Error: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error making API call:', error);
+                throw error;
+            }
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcmData, numChannels, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcmData.length * 2);
+            const view = new DataView(buffer);
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcmData.length * 2, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2 * numChannels, true);
+            view.setUint16(32, numChannels * 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcmData.length * 2, true);
+            for (let i = 0; i < pcmData.length; i++) {
+                view.setInt16(44 + i * 2, pcmData[i], true);
+            }
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+    </script>
+</body>
+</html>
