@@ -154,7 +154,7 @@
 
         <!-- Results Screen -->
         <div id="results-screen" class="hidden fade-in">
-            <h2 class="text-2xl font-bold text-gray-900 text-center">Your Healthy Recommendation</h2>
+            <h2 class="text-2xl font-bold text-gray-900 text-center">Your Recommendation</h2>
             <div id="recommendation-output" class="mt-6 space-y-6">
                 <!-- Recommendations will be injected here -->
             </div>
@@ -164,7 +164,7 @@
                 </button>
             </div>
             <div class="mt-6 text-center text-xs text-gray-500">
-                <p>Disclaimer: Nutritional information is an estimate and may vary based on preparation. Please verify with the restaurant for any dietary concerns.</p>
+                <p>Disclaimer: Nutritional and ingredient information is an estimate and may vary based on preparation. Please verify with the restaurant for any dietary concerns.</p>
             </div>
         </div>
 
@@ -328,7 +328,7 @@
 
         async function extractMenuItems(imagesBase64Array) {
             const parts = [
-                { text: "Analyze the images of a restaurant menu from India. The prices will be in Indian Rupees (INR). Extract all menu items, their full descriptions, and prices from all images combined. Return a single JSON array where each object has 'itemName', 'itemDescription', and 'itemPrice' as a number. Ignore non-menu text." }
+                { text: "Analyze the images of a restaurant menu. Detect the currency symbol (e.g., $, €, ₹). If no currency is found, default to 'INR'. Extract all menu items, descriptions, and prices. If an item has no price, the price should be null. Return a single JSON array where each object has 'itemName', 'itemDescription', 'itemPrice' (as a number or null), and 'currencySymbol'." }
             ];
 
             imagesBase64Array.forEach(base64String => {
@@ -351,9 +351,10 @@
                             properties: {
                                 "itemName": { "type": "STRING" },
                                 "itemDescription": { "type": "STRING" },
-                                "itemPrice": { "type": "NUMBER" }
+                                "itemPrice": { "type": "NUMBER", "nullable": true },
+                                "currencySymbol": { "type": "STRING" }
                             },
-                            required: ["itemName", "itemDescription", "itemPrice"]
+                            required: ["itemName", "itemDescription", "itemPrice", "currencySymbol"]
                         }
                     }
                 }
@@ -377,7 +378,7 @@
 
         async function getHealthyRecommendation(menuItems, preferences) {
             const prompt = `
-                You are a helpful nutrition expert and meal planner. Given the following menu items in JSON format from an Indian restaurant, and the user's preferences, please provide a recommendation for the healthiest meal for one person. The prices are in Indian Rupees (INR).
+                You are a helpful nutrition expert. Given the following menu items in JSON format, and the user's preferences, provide a recommendation for the healthiest meal for one person. The currency is specified in the menu items.
 
                 **User Preferences:**
                 - Dietary Preference: ${preferences.diet}
@@ -387,12 +388,13 @@
 
                 **Your Task:**
                 1.  Analyze the menu items based on the user's preferences.
-                2.  Recommend a healthy and balanced meal combination suitable for one person.
-                3.  Strictly adhere to the dietary preference (e.g., if 'Vegetarian', only suggest vegetarian items).
+                2.  Recommend a healthy and balanced meal combination for one person.
+                3.  Strictly adhere to the dietary preference.
                 4.  Strictly avoid any items containing the specified items to avoid.
-                5.  Calculate the total price for the entire recommended meal in INR.
-                6.  Provide a single, combined nutritional summary (calories, protein, carbs, fat) for the entire recommended order.
-                7.  Write a brief, encouraging explanation for why this meal is a good choice.
+                5.  Calculate the total price for the recommended items. Only include items that have a price. If no recommended items have a price, the total should be 0.
+                6.  Determine the currency symbol from the first item that has one.
+                7.  Provide a single, combined nutritional summary (calories, protein, carbs, fat).
+                8.  Write a brief, encouraging explanation for why this meal is a good choice.
 
                 Return the result as a single JSON object with the following structure.
             `;
@@ -410,12 +412,13 @@
                                     type: "OBJECT",
                                     properties: {
                                         "name": { "type": "STRING" },
-                                        "price": { "type": "NUMBER" },
+                                        "price": { "type": "NUMBER", "nullable": true },
                                         "quantity": { "type": "NUMBER" }
                                     }
                                 }
                             },
                             "totalPrice": { "type": "NUMBER" },
+                            "currencySymbol": { "type": "STRING" },
                             "nutrition": {
                                 type: "OBJECT",
                                 properties: {
@@ -427,7 +430,7 @@
                             },
                             "explanation": { "type": "STRING" }
                         },
-                        required: ["recommendedItems", "totalPrice", "nutrition", "explanation"]
+                        required: ["recommendedItems", "totalPrice", "currencySymbol", "nutrition", "explanation"]
                     }
                 }
             };
@@ -453,28 +456,35 @@
         function displayResults(recommendation) {
             let html = `
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
-                    <h3 class="text-lg font-semibold text-gray-800">Your Group's Recommendation</h3>
+                    <h3 class="text-lg font-semibold text-gray-800">Your Recommendation</h3>
                     <div class="mt-2 space-y-1">
             `;
 
             recommendation.recommendedItems.forEach(item => {
+                const priceDisplay = item.price !== null ? `${recommendation.currencySymbol}${(item.price * item.quantity).toFixed(2)}` : 'N/A';
                 html += `
                     <div class="flex justify-between items-center">
                         <span class="text-gray-700">${item.quantity} x ${item.name}</span>
-                        <span class="font-medium text-gray-900">₹${(item.price * item.quantity).toFixed(2)}</span>
+                        <span class="font-medium text-gray-900">${priceDisplay}</span>
                     </div>
                 `;
             });
 
-            html += `
+            if (recommendation.totalPrice > 0) {
+                html += `
+                        </div>
+                        <hr class="my-3 border-green-200">
+                        <div class="flex justify-between items-center font-bold text-lg">
+                            <span>Total</span>
+                            <span>${recommendation.currencySymbol}${recommendation.totalPrice.toFixed(2)}</span>
+                        </div>
                     </div>
-                    <hr class="my-3 border-green-200">
-                    <div class="flex justify-between items-center font-bold text-lg">
-                        <span>Total</span>
-                        <span>₹${recommendation.totalPrice.toFixed(2)}</span>
-                    </div>
-                </div>
+                `;
+            } else {
+                 html += `</div></div>`;
+            }
 
+            html += `
                 <div class="bg-gray-50 p-4 rounded-lg">
                     <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (Total)</h3>
                     <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
