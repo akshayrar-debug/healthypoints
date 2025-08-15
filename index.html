@@ -53,7 +53,7 @@
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8">
+    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 relative">
         
         <!-- Splash Screen -->
         <div id="splash-screen">
@@ -65,59 +65,77 @@
                 <h1 class="mt-4 text-2xl font-bold text-gray-900">Healthy Menu Scanner</h1>
                 <p class="mt-2 text-gray-600">Snap photos of your menu and get instant, healthy meal recommendations.</p>
             </div>
-            <div class="mt-8">
+            <div class="mt-8 space-y-4">
                 <input type="file" id="menu-image-input" accept="image/*" class="hidden" multiple>
-                <button id="scan-button" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-transform transform hover:scale-105">
-                    Select Menu Photos
+                <button id="take-photo-button" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-transform transform hover:scale-105 flex items-center justify-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Click a Photo</span>
+                </button>
+                <button id="select-photos-button" class="w-full bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 flex items-center justify-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>Select from Gallery</span>
                 </button>
             </div>
         </div>
 
         <!-- Image Preview Screen -->
         <div id="preview-screen" class="hidden">
-            <h2 class="text-2xl font-bold text-gray-900 text-center">Your Selected Photos</h2>
+            <button id="home-button" class="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </button>
+            <h2 class="text-2xl font-bold text-gray-900 text-center pt-8">Your Selected Photos</h2>
             <div id="image-preview-gallery" class="mt-4 grid grid-cols-3 gap-4 max-h-64 overflow-y-auto p-2 bg-gray-50 rounded-lg">
                 <!-- Image thumbnails will be injected here -->
             </div>
-            <div class="mt-6 flex flex-col space-y-4">
-                 <button id="add-more-button" class="w-full bg-blue-500 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-600">Add More Photos</button>
-                <button id="confirm-photos-button" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700">Next: Add Preferences</button>
-                <button id="cancel-button" class="w-full bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300">Start Over</button>
+            <div class="mt-6">
+                <button id="confirm-photos-button" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700">Next</button>
             </div>
         </div>
         
         <!-- Preferences Screen -->
         <div id="preferences-screen" class="hidden">
             <h2 class="text-2xl font-bold text-gray-900 text-center">Tell Us Your Preferences</h2>
-            <div class="mt-6 space-y-4">
-                <div>
-                    <label for="people-count" class="block text-sm font-medium text-gray-700">How many people are you ordering for?</label>
-                    <input type="number" id="people-count" name="people-count" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                </div>
+            <div class="mt-6 space-y-6">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Dietary Preferences</label>
                     <div class="mt-2 space-y-2">
                         <div class="flex items-center">
-                            <input id="pref-any" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Any" checked>
-                            <label for="pref-any" class="ml-3 block text-sm font-medium text-gray-700">Anything is fine</label>
+                            <input id="pref-any" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Anything works" checked>
+                            <label for="pref-any" class="ml-3 block text-sm font-medium text-gray-700">Anything works</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="pref-chicken" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Chicken">
+                            <label for="pref-chicken" class="ml-3 block text-sm font-medium text-gray-700">Chicken</label>
                         </div>
                         <div class="flex items-center">
                             <input id="pref-veg" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Vegetarian">
-                            <label for="pref-veg" class="ml-3 block text-sm font-medium text-gray-700">Vegetarian</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input id="pref-vegan" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Vegan">
-                            <label for="pref-vegan" class="ml-3 block text-sm font-medium text-gray-700">Vegan</label>
-                        </div>
-                         <div class="flex items-center">
-                            <input id="pref-jain" name="preference" type="radio" class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500" value="Jain">
-                            <label for="pref-jain" class="ml-3 block text-sm font-medium text-gray-700">Jain</label>
+                            <label for="pref-veg" class="ml-3 block text-sm font-medium text-gray-700">Veg</label>
                         </div>
                     </div>
                 </div>
                 <div>
-                    <label for="allergies" class="block text-sm font-medium text-gray-700">Allergies or items to avoid?</label>
-                    <input type="text" id="allergies" name="allergies" placeholder="e.g., peanuts, gluten, very spicy" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    <label class="block text-sm font-medium text-gray-700">Items to avoid</label>
+                    <div class="mt-2 grid grid-cols-2 gap-4">
+                        <div class="flex items-center">
+                            <input id="avoid-dairy" name="avoid" type="checkbox" value="Dairy" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <label for="avoid-dairy" class="ml-3 block text-sm font-medium text-gray-700">Dairy</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="avoid-peanuts" name="avoid" type="checkbox" value="Peanuts" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <label for="avoid-peanuts" class="ml-3 block text-sm font-medium text-gray-700">Peanuts</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input id="avoid-onion" name="avoid" type="checkbox" value="Onion" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <label for="avoid-onion" class="ml-3 block text-sm font-medium text-gray-700">Onion</label>
+                        </div>
+                    </div>
                 </div>
             </div>
              <div class="mt-8">
@@ -166,12 +184,12 @@
         const loadingScreen = document.getElementById('loading-screen');
         const resultsScreen = document.getElementById('results-screen');
         
-        const scanButton = document.getElementById('scan-button');
+        const takePhotoButton = document.getElementById('take-photo-button');
+        const selectPhotosButton = document.getElementById('select-photos-button');
         const imageInput = document.getElementById('menu-image-input');
         const imagePreviewGallery = document.getElementById('image-preview-gallery');
         const confirmPhotosButton = document.getElementById('confirm-photos-button');
-        const cancelButton = document.getElementById('cancel-button');
-        const addMoreButton = document.getElementById('add-more-button');
+        const homeButton = document.getElementById('home-button');
         const analyzeButton = document.getElementById('analyze-button');
         const speakButton = document.getElementById('speak-button');
         const resetButton = document.getElementById('reset-button');
@@ -186,9 +204,17 @@
         let selectedImagesData = []; // Will store { url, base64 } objects
         
         // --- Event Listeners ---
-        scanButton.addEventListener('click', () => imageInput.click());
-        addMoreButton.addEventListener('click', () => imageInput.click());
-        cancelButton.addEventListener('click', resetApp);
+        takePhotoButton.addEventListener('click', () => {
+            imageInput.removeAttribute('multiple');
+            imageInput.setAttribute('capture', 'environment');
+            imageInput.click();
+        });
+        selectPhotosButton.addEventListener('click', () => {
+            imageInput.setAttribute('multiple', '');
+            imageInput.removeAttribute('capture');
+            imageInput.click();
+        });
+        homeButton.addEventListener('click', resetApp);
         imageInput.addEventListener('change', handleImageSelection);
         confirmPhotosButton.addEventListener('click', () => showScreen('preferences'));
         analyzeButton.addEventListener('click', handleAnalysis);
@@ -238,6 +264,20 @@
                 thumbContainer.appendChild(removeBtn);
                 imagePreviewGallery.appendChild(thumbContainer);
             });
+            
+            // Add the "add more" button to the gallery
+            const addMoreContainer = document.createElement('div');
+            const addMoreBtn = document.createElement('button');
+            addMoreBtn.id = 'add-more-button';
+            addMoreBtn.className = 'w-full h-24 border-2 border-dashed rounded-md flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors';
+            addMoreBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>`;
+            addMoreBtn.onclick = () => {
+                imageInput.setAttribute('multiple', '');
+                imageInput.removeAttribute('capture');
+                imageInput.click();
+            };
+            addMoreContainer.appendChild(addMoreBtn);
+            imagePreviewGallery.appendChild(addMoreContainer);
         }
         
         function removeImage(event) {
@@ -256,10 +296,17 @@
             showLoading('Reading menu...');
             hideError();
 
+            const dietPreference = document.querySelector('input[name="preference"]:checked').value;
+            const itemsToAvoidCheckboxes = document.querySelectorAll('input[name="avoid"]:checked');
+            let itemsToAvoid = [];
+            itemsToAvoidCheckboxes.forEach(checkbox => {
+                itemsToAvoid.push(checkbox.value);
+            });
+            const itemsToAvoidString = itemsToAvoid.join(', ');
+
             const userPreferences = {
-                people: document.getElementById('people-count').value,
-                diet: document.querySelector('input[name="preference"]:checked').value,
-                allergies: document.getElementById('allergies').value
+                diet: dietPreference,
+                allergies: itemsToAvoidString
             };
 
             try {
@@ -333,23 +380,22 @@
 
         async function getHealthyRecommendation(menuItems, preferences) {
             const prompt = `
-                You are a helpful nutrition expert and meal planner. Given the following menu items in JSON format from an Indian restaurant, and the user's preferences, please provide a recommendation for the healthiest meal. The prices are in Indian Rupees (INR).
+                You are a helpful nutrition expert and meal planner. Given the following menu items in JSON format from an Indian restaurant, and the user's preferences, please provide a recommendation for the healthiest meal for one person. The prices are in Indian Rupees (INR).
 
                 **User Preferences:**
-                - Number of People: ${preferences.people}
                 - Dietary Preference: ${preferences.diet}
-                - Allergies / Items to Avoid: ${preferences.allergies || 'None specified'}
+                - Items to Avoid: ${preferences.allergies || 'None specified'}
 
                 **Menu Items:** ${JSON.stringify(menuItems)}
 
                 **Your Task:**
                 1.  Analyze the menu items based on the user's preferences.
-                2.  Recommend a healthy and balanced meal combination suitable for the specified number of people.
-                3.  Strictly adhere to the dietary preference (e.g., if vegetarian, only suggest vegetarian items).
-                4.  Strictly avoid any items containing the specified allergies.
+                2.  Recommend a healthy and balanced meal combination suitable for one person.
+                3.  Strictly adhere to the dietary preference (e.g., if 'Vegetarian', only suggest vegetarian items).
+                4.  Strictly avoid any items containing the specified items to avoid.
                 5.  Calculate the total price for the entire recommended meal in INR.
                 6.  Provide a single, combined nutritional summary (calories, protein, carbs, fat) for the entire recommended order.
-                7.  Write a brief, encouraging explanation for why this meal is a good choice for the group.
+                7.  Write a brief, encouraging explanation for why this meal is a good choice.
 
                 Return the result as a single JSON object with the following structure.
             `;
@@ -550,7 +596,8 @@
         
         async function makeApiCall(targetApi, payload) {
             try {
-                const response = await fetch('/gemini', {
+                const functionUrl = new URL('/gemini', window.location.href);
+                const response = await fetch(functionUrl.href, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ targetApi, payload })
