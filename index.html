@@ -158,13 +158,13 @@
             <div id="recommendation-output" class="mt-6 space-y-6">
                 <!-- Recommendations will be injected here -->
             </div>
-            <div class="mt-8 flex space-x-4">
-                <button id="speak-button" class="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    Hear Why
-                </button>
-                <button id="reset-button" class="flex-1 bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-transform transform hover:scale-105">
+            <div class="mt-8">
+                <button id="reset-button" class="w-full bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-transform transform hover:scale-105">
                     Scan Another
                 </button>
+            </div>
+            <div class="mt-6 text-center text-xs text-gray-500">
+                <p>Disclaimer: Nutritional information is an estimate and may vary based on preparation. Please verify with the restaurant for any dietary concerns.</p>
             </div>
         </div>
 
@@ -191,7 +191,6 @@
         const confirmPhotosButton = document.getElementById('confirm-photos-button');
         const homeButton = document.getElementById('home-button');
         const analyzeButton = document.getElementById('analyze-button');
-        const speakButton = document.getElementById('speak-button');
         const resetButton = document.getElementById('reset-button');
         
         const recommendationOutput = document.getElementById('recommendation-output');
@@ -200,7 +199,6 @@
         const loadingMessage = document.getElementById('loading-message');
 
         // --- State ---
-        let recommendationTextToSpeak = "";
         let selectedImagesData = []; // Will store { url, base64 } objects
         
         // --- Event Listeners ---
@@ -219,7 +217,6 @@
         confirmPhotosButton.addEventListener('click', () => showScreen('preferences'));
         analyzeButton.addEventListener('click', handleAnalysis);
         resetButton.addEventListener('click', resetApp);
-        speakButton.addEventListener('click', handleSpeak);
 
         // --- Core Functions ---
 
@@ -451,63 +448,9 @@
             }
         }
         
-        async function handleSpeak() {
-            if (!recommendationTextToSpeak) return;
-            speakButton.disabled = true;
-            speakButton.textContent = 'Speaking...';
-
-            try {
-                const payload = {
-                    contents: [{
-                        parts: [{ text: `Say this in a friendly and encouraging tone: ${recommendationTextToSpeak}` }]
-                    }],
-                    generationConfig: {
-                        responseModalities: ["AUDIO"],
-                        speechConfig: {
-                            voiceConfig: {
-                                prebuiltVoiceConfig: { voiceName: "Puck" }
-                            }
-                        }
-                    },
-                    model: "gemini-2.5-flash-preview-tts"
-                };
-
-                const response = await makeApiCall('tts', payload);
-                
-                const part = response?.candidates?.[0]?.content?.parts?.[0];
-                const audioData = part?.inlineData?.data;
-                const mimeType = part?.inlineData?.mimeType;
-
-                if (audioData && mimeType && mimeType.startsWith("audio/")) {
-                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
-                    const pcmData = base64ToArrayBuffer(audioData);
-                    const pcm16 = new Int16Array(pcmData);
-                    const wavBlob = pcmToWav(pcm16, 1, sampleRate);
-                    const audioUrl = URL.createObjectURL(wavBlob);
-                    
-                    const audio = new Audio(audioUrl);
-                    audio.play();
-                    audio.onended = () => {
-                        speakButton.disabled = false;
-                        speakButton.textContent = 'Hear Why';
-                    };
-                } else {
-                    console.error("Invalid API response structure from TTS model:", response);
-                    throw new Error("Invalid audio data received.");
-                }
-
-            } catch (error) {
-                console.error("TTS Error:", error);
-                showError("Sorry, I couldn't speak the recommendation.");
-                speakButton.disabled = false;
-                speakButton.textContent = 'Hear Why';
-            }
-        }
-
         // --- UI Display Functions ---
 
         function displayResults(recommendation) {
-            recommendationTextToSpeak = recommendation.explanation;
             let html = `
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
                     <h3 class="text-lg font-semibold text-gray-800">Your Group's Recommendation</h3>
@@ -557,7 +500,6 @@
             selectedImagesData = [];
             imagePreviewGallery.innerHTML = '';
             recommendationOutput.innerHTML = '';
-            recommendationTextToSpeak = '';
             hideError();
         }
 
