@@ -205,7 +205,9 @@
         const loadingMessage = document.getElementById('loading-message');
 
         // --- State ---
-        let selectedImagesData = []; // Will store { url, base64 } objects
+        let selectedImagesData = [];
+        let fullRecommendationData = null;
+        let isShowingTopRecs = true;
         
         // --- Event Listeners ---
         takePhotoButton.addEventListener('click', () => {
@@ -230,9 +232,7 @@
         async function handleImageSelection(event) {
             const files = event.target.files;
             if (!files.length) return;
-
             showLoading('Processing images...');
-
             try {
                 for (const file of files) {
                     const base64 = await fileToBase64(file);
@@ -253,22 +253,18 @@
             selectedImagesData.forEach((imageData, index) => {
                 const thumbContainer = document.createElement('div');
                 thumbContainer.className = 'thumbnail-container';
-
                 const img = document.createElement('img');
                 img.src = imageData.url;
                 img.className = 'w-full h-24 object-cover rounded-md';
-                
                 const removeBtn = document.createElement('div');
                 removeBtn.className = 'remove-btn';
                 removeBtn.innerHTML = '&times;';
                 removeBtn.dataset.index = index;
                 removeBtn.onclick = removeImage;
-
                 thumbContainer.appendChild(img);
                 thumbContainer.appendChild(removeBtn);
                 imagePreviewGallery.appendChild(thumbContainer);
             });
-            
             const addMoreContainer = document.createElement('div');
             const addMoreBtn = document.createElement('button');
             addMoreBtn.id = 'add-more-button';
@@ -295,10 +291,8 @@
                 showError("Please select at least one menu photo.");
                 return;
             }
-
             showLoading('Reading menu...');
             hideError();
-
             const dietPreference = document.querySelector('input[name="preference"]:checked').value;
             const itemsToAvoidCheckboxes = document.querySelectorAll('input[name="avoid"]:checked');
             let itemsToAvoid = [];
@@ -306,25 +300,20 @@
                 itemsToAvoid.push(checkbox.value);
             });
             const itemsToAvoidString = itemsToAvoid.join(', ');
-
             const userPreferences = {
                 diet: dietPreference,
                 allergies: itemsToAvoidString
             };
-
             try {
                 const base64Images = selectedImagesData.map(d => d.base64);
                 const menuItems = await extractMenuItems(base64Images);
                 if (!menuItems || menuItems.length === 0) {
                     throw new Error("The AI couldn't find any menu items. Please try clearer photos.");
                 }
-
                 showLoading('Finding personalized recommendations...');
                 const recommendation = await getHealthyRecommendation(menuItems, userPreferences);
-
                 displayResults(recommendation);
                 showScreen('results');
-
             } catch (error) {
                 console.error("Error during processing:", error);
                 showError(error.message || "An unknown error occurred.");
@@ -336,16 +325,9 @@
             const parts = [
                 { text: "Analyze the images of a restaurant menu. Detect the currency symbol (e.g., $, €, ₹). If no currency is found, default to 'INR'. Extract all menu items, descriptions, and prices. If an item has no price, the price should be null. Return a single JSON array where each object has 'itemName', 'itemDescription', 'itemPrice' (as a number or null), and 'currencySymbol'." }
             ];
-
             imagesBase64Array.forEach(base64String => {
-                parts.push({
-                    inlineData: {
-                        mimeType: "image/jpeg",
-                        data: base64String
-                    }
-                });
+                parts.push({ inlineData: { mimeType: "image/jpeg", data: base64String } });
             });
-
             const payload = {
                 contents: [{ parts }],
                 generationConfig: {
@@ -366,14 +348,11 @@
                 }
             };
             const response = await makeApiCall('vision', payload);
-            
             if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
                 console.error("Invalid API response structure from Vision model:", response);
                 throw new Error("The AI model returned an unexpected response. Please try again.");
             }
-
             const jsonText = response.candidates[0].content.parts[0].text;
-            
             try {
                 return JSON.parse(jsonText);
             } catch (e) {
@@ -384,7 +363,7 @@
 
         async function getHealthyRecommendation(menuItems, preferences) {
             const prompt = `
-                You are a helpful nutrition expert. Given the following menu items in JSON format, and the user's preferences, provide a recommendation for the healthiest meal for one person.
+                You are a helpful nutrition expert. Given menu items and user preferences, provide a healthy meal recommendation.
 
                 **User Preferences:**
                 - Dietary Preference: ${preferences.diet}
@@ -394,13 +373,13 @@
 
                 **Your Task:**
                 1.  Find up to 3 healthiest dishes that match the user's preferences. These are the "topRecommendations".
-                2.  For EACH of the top recommendations, provide a detailed, single-paragraph explanation covering the dish and its likely ingredients. Also provide an individual nutritional breakdown (calories, protein, carbs, fat). For protein, carbs, and fat, the unit should be 'g'.
-                3.  If more than 3 matching healthy dishes exist, provide an additional list of up to 3 "moreRecommendations" containing only the dish names.
-                4.  For the top recommendations, calculate the total price. Only include items that have a price.
+                2.  For EACH top recommendation, provide a detailed, single-paragraph explanation about the dish, its ingredients, and health benefits. Also provide its individual nutritional breakdown (calories, protein, carbs, fat). Ensure units are correct (e.g., "120kcal", "20g").
+                3.  If more than 3 matching healthy dishes exist, find an additional list of up to 3 "moreRecommendations". For these, also provide a full explanation and nutritional breakdown just like the top ones.
+                4.  Calculate the total price for ONLY the top recommendations. Only include items that have a price.
                 5.  Determine the currency symbol from the first item that has one.
-                6.  Provide a single, combined nutritional summary for ONLY the top recommendations. Include an estimated portion size in grams (e.g., "approx. 250g").
+                6.  Provide a single, combined nutritional summary for ONLY the top recommendations. Include an estimated portion size in grams.
 
-                Return the result as a single JSON object with the following structure.
+                Return a single JSON object with the specified structure.
             `;
 
             const payload = {
@@ -435,13 +414,24 @@
                                 items: {
                                     type: "OBJECT",
                                     properties: {
-                                        "name": { "type": "STRING" }
+                                        "name": { "type": "STRING" },
+                                        "price": { "type": "NUMBER", "nullable": true },
+                                        "explanation": { "type": "STRING" },
+                                        "nutrition": {
+                                            type: "OBJECT",
+                                            properties: {
+                                                "calories": { "type": "STRING" },
+                                                "protein": { "type": "STRING" },
+                                                "carbs": { "type": "STRING" },
+                                                "fat": { "type": "STRING" }
+                                            }
+                                        }
                                     }
                                 }
                             },
                             "totalPrice": { "type": "NUMBER" },
                             "currencySymbol": { "type": "STRING" },
-                            "totalNutrition": {
+                            "combinedNutrition": {
                                 type: "OBJECT",
                                 properties: {
                                     "calories": { "type": "STRING" },
@@ -452,19 +442,16 @@
                                 }
                             }
                         },
-                        required: ["topRecommendations", "moreRecommendations", "totalPrice", "currencySymbol", "totalNutrition"]
+                        required: ["topRecommendations", "moreRecommendations", "totalPrice", "currencySymbol", "combinedNutrition"]
                     }
                 }
             };
             const response = await makeApiCall('vision', payload);
-            
             if (!response.candidates?.[0]?.content?.parts?.[0]?.text) {
                 console.error("Invalid API response structure from Recommendation model:", response);
                 throw new Error("The AI model returned an unexpected response while analyzing nutrition.");
             }
-
             const jsonText = response.candidates[0].content.parts[0].text;
-            
             try {
                 return JSON.parse(jsonText);
             } catch (e) {
@@ -473,23 +460,31 @@
             }
         }
         
-        // --- UI Display Functions ---
-
         function displayResults(recommendation) {
+            fullRecommendationData = recommendation;
+            isShowingTopRecs = true;
+            renderDisplay();
+        }
+
+        function renderDisplay() {
+            const recsToShow = isShowingTopRecs ? fullRecommendationData.topRecommendations : fullRecommendationData.moreRecommendations;
+            const additionalRecs = isShowingTopRecs ? fullRecommendationData.moreRecommendations : fullRecommendationData.topRecommendations;
+            const nutritionToShow = isShowingTopRecs ? fullRecommendationData.combinedNutrition : null; // Only show total for top recs
+
             let html = `
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
                     <h3 class="text-lg font-semibold text-gray-800">Your Recommendation</h3>
                     <div id="top-recs-list" class="mt-2 space-y-1">
             `;
 
-            if (recommendation.topRecommendations.length === 0) {
+            if (recsToShow.length === 0) {
                  html += `<p class="text-gray-600">Sorry, no suitable options could be found based on your preferences.</p>`;
             }
 
-            recommendation.topRecommendations.forEach((item, index) => {
+            recsToShow.forEach((item, index) => {
                 let priceHtml = '';
                 if (item.price !== null) {
-                    priceHtml = `<span class="font-medium text-gray-900">${recommendation.currencySymbol}${item.price.toFixed(2)}</span>`;
+                    priceHtml = `<span class="font-medium text-gray-900">${fullRecommendationData.currencySymbol}${item.price.toFixed(2)}</span>`;
                 }
                 html += `
                     <div class="flex justify-between items-center">
@@ -499,13 +494,14 @@
                 `;
             });
 
-            if (recommendation.totalPrice > 0) {
+            const totalPrice = recsToShow.reduce((acc, item) => acc + (item.price || 0), 0);
+            if (totalPrice > 0) {
                 html += `
                         </div>
                         <hr class="my-3 border-green-200">
                         <div class="flex justify-between items-center font-bold text-lg">
                             <span>Total</span>
-                            <span>${recommendation.currencySymbol}${recommendation.totalPrice.toFixed(2)}</span>
+                            <span>${fullRecommendationData.currencySymbol}${totalPrice.toFixed(2)}</span>
                         </div>
                     </div>
                 `;
@@ -513,30 +509,29 @@
                  html += `</div></div>`;
             }
             
-            if (recommendation.topRecommendations.length > 0 && recommendation.topRecommendations.length < 3) {
+            if (recsToShow.length > 0 && recsToShow.length < 3) {
                 html += `<p class="text-xs text-center text-gray-500 mt-2">These are the only available options based on your preferences.</p>`;
             }
 
-            // "Why it's a good choice" section
-            if (recommendation.topRecommendations.length > 0) {
+            if (recsToShow.length > 0) {
                 html += `
                     <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mt-6">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-800">Why It's a Good Choice</h3>
-                            <span class="text-sm font-medium text-gray-700">Total Calories: ${recommendation.totalNutrition.calories}</span>
+                            ${nutritionToShow ? `<span class="text-sm font-medium text-gray-700">Total Calories: ${nutritionToShow.calories}</span>` : ''}
                         </div>
                         <div class="mt-2 text-gray-700 space-y-4">
                 `;
-                recommendation.topRecommendations.forEach(item => {
+                recsToShow.forEach(item => {
                     html += `
                         <div>
                             <h4 class="font-semibold">${item.name}</h4>
                             <p class="text-sm">${item.explanation}</p>
                             <div class="text-xs bg-gray-100 rounded-full px-3 py-1 mt-2 inline-block">
-                                <span class="font-semibold">Cal:</span> ${item.nutrition.calories}kcal &nbsp;&nbsp;
-                                <span class="font-semibold">P:</span> ${item.nutrition.protein}g &nbsp;&nbsp;
-                                <span class="font-semibold">C:</span> ${item.nutrition.carbs}g &nbsp;&nbsp;
-                                <span class="font-semibold">F:</span> ${item.nutrition.fat}g
+                                <span class="font-semibold">Cal:</span> ${item.nutrition.calories} &nbsp;&nbsp;
+                                <span class="font-semibold">P:</span> ${item.nutrition.protein} &nbsp;&nbsp;
+                                <span class="font-semibold">C:</span> ${item.nutrition.carbs} &nbsp;&nbsp;
+                                <span class="font-semibold">F:</span> ${item.nutrition.fat}
                             </div>
                         </div>
                     `;
@@ -544,40 +539,39 @@
                 html += `</div></div>`;
             }
 
-
-            if (recommendation.moreRecommendations.length > 0) {
+            if (additionalRecs.length > 0) {
                 html += `
                     <div id="more-recs-container" class="mt-4 bg-gray-50 p-4 rounded-lg">
                          <h3 class="text-md font-semibold text-gray-700">Additional Options</h3>
-                        <button id="show-more-btn" class="text-sm text-blue-600 hover:underline">Show more</button>
-                        <div id="more-recs-list" class="hidden mt-2 space-y-1 text-gray-600">
+                         <div id="more-recs-list" class="mt-2 space-y-1 text-gray-600">
                 `;
-                recommendation.moreRecommendations.forEach(item => {
+                additionalRecs.forEach(item => {
                     html += `<p>${item.name}</p>`;
                 });
-                html += `</div></div>`;
+                html += `</div><button id="show-details-btn" class="text-sm text-blue-600 hover:underline mt-2">Show details</button></div>`;
             }
 
-
-            html += `
-                <div class="bg-gray-50 p-4 rounded-lg mt-6">
-                    <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (per portion)</h3>
-                    <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                        <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.calories}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.protein}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-600">Carbs:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.carbs}</span></div>
-                        <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.fat}</span></div>
-                        <div class="flex justify-between col-span-2"><span class="text-gray-600">Portion Size:</span> <span class="font-medium text-gray-800">${recommendation.totalNutrition.portionSize}</span></div>
+            if (nutritionToShow) {
+                html += `
+                    <div class="bg-gray-50 p-4 rounded-lg mt-6">
+                        <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (per portion)</h3>
+                        <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${nutritionToShow.calories}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${nutritionToShow.protein}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Carbs:</span> <span class="font-medium text-gray-800">${nutritionToShow.carbs}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${nutritionToShow.fat}</span></div>
+                            <div class="flex justify-between col-span-2"><span class="text-gray-600">Portion Size:</span> <span class="font-medium text-gray-800">${nutritionToShow.portionSize}</span></div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
             recommendationOutput.innerHTML = html;
 
-            const showMoreBtn = document.getElementById('show-more-btn');
-            if (showMoreBtn) {
-                showMoreBtn.addEventListener('click', () => {
-                    document.getElementById('more-recs-list').classList.remove('hidden');
-                    showMoreBtn.classList.add('hidden');
+            const showDetailsBtn = document.getElementById('show-details-btn');
+            if (showDetailsBtn) {
+                showDetailsBtn.addEventListener('click', () => {
+                    isShowingTopRecs = !isShowingTopRecs;
+                    renderDisplay();
                 });
             }
         }
@@ -587,6 +581,7 @@
             imageInput.value = ''; 
             selectedImagesData.forEach(d => URL.revokeObjectURL(d.url));
             selectedImagesData = [];
+            fullRecommendationData = null;
             imagePreviewGallery.innerHTML = '';
             recommendationOutput.innerHTML = '';
             hideError();
