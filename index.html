@@ -549,16 +549,15 @@
         }
         
         async function makeApiCall(targetApi, payload) {
-            const url = targetApi === 'vision' ? API_URL_VISION : API_URL_TTS;
             try {
-                const response = await fetch(url, {
+                const response = await fetch('/gemini', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ targetApi, payload })
                 });
                 if (!response.ok) {
                     const errorBody = await response.json();
-                    throw new Error(errorBody.error?.message || `API Error: ${response.status}`);
+                    throw new Error(errorBody.error || `API Error: ${response.status}`);
                 }
                 return await response.json();
             } catch (error) {
