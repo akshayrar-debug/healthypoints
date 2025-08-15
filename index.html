@@ -373,7 +373,7 @@
 
                 **Your Task:**
                 1.  Find up to 3 healthiest dishes that match the user's preferences. These are the "topRecommendations".
-                2.  For EACH top recommendation, provide a detailed, single-paragraph explanation about the dish, its ingredients, and health benefits. Also provide its individual nutritional breakdown (calories, protein, carbs, fat). Ensure units are correct (e.g., "120kcal", "20g").
+                2.  For EACH top recommendation, provide a detailed, single-paragraph explanation about the dish, its ingredients, and health benefits. Also provide its individual nutritional breakdown (calories, protein, carbs, fat). Ensure units are correct (e.g., "120 kcal", "20 g").
                 3.  If more than 3 matching healthy dishes exist, find an additional list of up to 3 "moreRecommendations". For these, also provide a full explanation and nutritional breakdown just like the top ones.
                 4.  Calculate the total price for ONLY the top recommendations. Only include items that have a price.
                 5.  Determine the currency symbol from the first item that has one.
@@ -469,8 +469,7 @@
         function renderDisplay() {
             const recsToShow = isShowingTopRecs ? fullRecommendationData.topRecommendations : fullRecommendationData.moreRecommendations;
             const additionalRecs = isShowingTopRecs ? fullRecommendationData.moreRecommendations : fullRecommendationData.topRecommendations;
-            const nutritionToShow = isShowingTopRecs ? fullRecommendationData.combinedNutrition : null; // Only show total for top recs
-
+            
             let html = `
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
                     <h3 class="text-lg font-semibold text-gray-800">Your Recommendation</h3>
@@ -518,7 +517,7 @@
                     <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mt-6">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-800">Why It's a Good Choice</h3>
-                            ${nutritionToShow ? `<span class="text-sm font-medium text-gray-700">Total Calories: ${nutritionToShow.calories}</span>` : ''}
+                            <span class="text-sm font-medium text-gray-700">Total Calories: ${fullRecommendationData.combinedNutrition.calories}</span>
                         </div>
                         <div class="mt-2 text-gray-700 space-y-4">
                 `;
@@ -542,29 +541,22 @@
             if (additionalRecs.length > 0) {
                 html += `
                     <div id="more-recs-container" class="mt-4 bg-gray-50 p-4 rounded-lg">
-                         <h3 class="text-md font-semibold text-gray-700">Additional Options</h3>
+                         <div class="flex justify-between items-center">
+                            <h3 class="text-md font-semibold text-gray-700">Additional Options</h3>
+                            <button id="show-details-btn" class="p-1 rounded-full hover:bg-gray-200">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 12L3 8m4 8l4-8m4 8V4m0 12l4-8m-4 8l-4-8" />
+                                </svg>
+                            </button>
+                         </div>
                          <div id="more-recs-list" class="mt-2 space-y-1 text-gray-600">
                 `;
                 additionalRecs.forEach(item => {
                     html += `<p>${item.name}</p>`;
                 });
-                html += `</div><button id="show-details-btn" class="text-sm text-blue-600 hover:underline mt-2">Show details</button></div>`;
+                html += `</div></div>`;
             }
 
-            if (nutritionToShow) {
-                html += `
-                    <div class="bg-gray-50 p-4 rounded-lg mt-6">
-                        <h3 class="text-lg font-semibold text-gray-800">Estimated Nutrition (per portion)</h3>
-                        <div class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <div class="flex justify-between"><span class="text-gray-600">Calories:</span> <span class="font-medium text-gray-800">${nutritionToShow.calories}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Protein:</span> <span class="font-medium text-gray-800">${nutritionToShow.protein}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Carbs:</span> <span class="font-medium text-gray-800">${nutritionToShow.carbs}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Fat:</span> <span class="font-medium text-gray-800">${nutritionToShow.fat}</span></div>
-                            <div class="flex justify-between col-span-2"><span class="text-gray-600">Portion Size:</span> <span class="font-medium text-gray-800">${nutritionToShow.portionSize}</span></div>
-                        </div>
-                    </div>
-                `;
-            }
             recommendationOutput.innerHTML = html;
 
             const showDetailsBtn = document.getElementById('show-details-btn');
