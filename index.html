@@ -373,7 +373,7 @@
 
                 **Your Task:**
                 1.  Find up to 3 healthiest dishes that match the user's preferences. These are the "topRecommendations".
-                2.  For EACH top recommendation, provide a detailed, single-paragraph explanation about the dish, its ingredients, and health benefits. Also provide its individual nutritional breakdown (calories, protein, carbs, fat). Ensure units are correct (e.g., "120 kcal", "20 g").
+                2.  For EACH top recommendation, provide a concise, single-paragraph explanation (4-5 lines) about the dish, its ingredients, and health benefits. Also provide its individual nutritional breakdown (calories, protein, carbs, fat). Ensure units are correct (e.g., "120 kcal", "20 g").
                 3.  If more than 3 matching healthy dishes exist, find an additional list of up to 3 "moreRecommendations". For these, also provide a full explanation and nutritional breakdown just like the top ones.
                 4.  Calculate the total price for ONLY the top recommendations. Only include items that have a price.
                 5.  Determine the currency symbol from the first item that has one.
@@ -541,13 +541,16 @@
             if (additionalRecs.length > 0) {
                 html += `
                     <div id="more-recs-container" class="mt-4 bg-gray-50 p-4 rounded-lg">
-                         <h3 class="text-md font-semibold text-gray-700">Additional Options</h3>
+                         <div class="flex justify-between items-center">
+                            <h3 class="text-md font-semibold text-gray-700">Additional Options</h3>
+                            <button id="show-details-btn" class="text-sm text-blue-600 hover:underline">Get details</button>
+                         </div>
                          <div id="more-recs-list" class="mt-2 space-y-1 text-gray-600">
                 `;
                 additionalRecs.forEach(item => {
                     html += `<p>${item.name}</p>`;
                 });
-                html += `</div><button id="show-details-btn" class="text-sm text-blue-600 hover:underline mt-2">Get details</button></div>`;
+                html += `</div></div>`;
             }
             
             recommendationOutput.innerHTML = html;
