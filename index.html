@@ -416,6 +416,11 @@
             };
             try {
                 const recommendation = await getBestSellerRecommendation(userPreferences);
+                if (!recommendation.restaurantFound) {
+                    showError("Could not find enough information for this restaurant. Please check the name and location, or check with the restaurant directly.");
+                    showScreen('best-seller-input');
+                    return;
+                }
                 displayResults(recommendation, "Best Seller Recommendations");
                 showScreen('results');
             } catch (error) {
@@ -572,13 +577,14 @@
                 - Dietary Preference: ${preferences.diet}
 
                 **Your Task:**
-                1.  Find the most reviewed, recommended, and best-selling dishes from customer reviews and online menus.
-                2.  Filter these dishes based on the user's dietary preference.
-                3.  Identify up to 3 dishes as "topRecommendations".
-                4.  For EACH top recommendation, provide a concise, single-paragraph explanation (4-5 lines) based on reviews. Note if it's a "Chef's Special".
-                5.  If more than 3 matching dishes exist, find an additional list of up to 3 "moreRecommendations". For these, also provide a full explanation.
+                1.  First, determine if you can find sufficient information (reviews, menus) for this restaurant online. If not, set "restaurantFound" to false and return immediately.
+                2.  If found, identify the most reviewed, recommended, and best-selling dishes from customer reviews and online menus.
+                3.  Filter these dishes based on the user's dietary preference.
+                4.  Identify up to 3 dishes as "topRecommendations".
+                5.  For EACH top recommendation, provide a concise, single-paragraph explanation (4-5 lines) based on reviews. Only mention "Chef's Special" if it is explicitly called out in the sources.
+                6.  If more than 3 matching dishes exist, find an additional list of up to 3 "moreRecommendations". For these, also provide a full explanation.
 
-                Return a single JSON object with the specified structure. Price and nutrition can be null.
+                Return a single JSON object with the specified structure.
             `;
 
             const payload = {
@@ -588,6 +594,7 @@
                     responseSchema: {
                         type: "OBJECT",
                         properties: {
+                            "restaurantFound": { "type": "BOOLEAN" },
                             "topRecommendations": {
                                 type: "ARRAY",
                                 items: {
@@ -611,7 +618,7 @@
                                 }
                             }
                         },
-                        required: ["topRecommendations", "moreRecommendations"]
+                        required: ["restaurantFound", "topRecommendations", "moreRecommendations"]
                     }
                 }
             };
