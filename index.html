@@ -55,15 +55,34 @@
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 relative">
         
-        <!-- Splash Screen -->
-        <div id="splash-screen">
+        <!-- Main Menu Screen -->
+        <div id="main-menu-screen">
             <div class="text-center">
-                <svg class="mx-auto h-16 w-16 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                 <svg class="mx-auto h-16 w-16 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.774 4.774zM21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75l1.5 1.5 3-3.75M12 18.75a6.75 6.75 0 006.75-6.75H5.25A6.75 6.75 0 0012 18.75z" />
                 </svg>
-                <h1 class="mt-4 text-2xl font-bold text-gray-900">Healthy Menu Scanner</h1>
-                <p class="mt-2 text-gray-600">Snap photos of your menu and get instant, healthy meal recommendations.</p>
+                <h1 class="mt-4 text-2xl font-bold text-gray-900">Menu Scanner</h1>
+                <p class="mt-2 text-gray-600">How can I help you today?</p>
+            </div>
+            <div class="mt-8 space-y-4">
+                <button id="health-nutrition-btn" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-green-700">Health and Nutrition</button>
+                <button id="best-seller-btn" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-blue-700">Best Seller and Most Reviewed</button>
+                <button id="experience-btn" class="w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-purple-700">Experience and Variety</button>
+                <button id="mood-btn" class="w-full bg-yellow-500 text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:bg-yellow-600">Mood Based</button>
+            </div>
+        </div>
+
+        <!-- Photo Upload Screen -->
+        <div id="photo-upload-screen" class="hidden">
+             <button id="home-button-upload" class="absolute top-4 left-4 p-2 rounded-full hover:bg-gray-200 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </button>
+            <div class="text-center pt-8">
+                <h1 class="mt-4 text-2xl font-bold text-gray-900">Upload Your Menu</h1>
+                <p class="mt-2 text-gray-600">Snap photos of your menu to get started.</p>
             </div>
             <div class="mt-8 space-y-4">
                 <input type="file" id="menu-image-input" accept="image/*" class="hidden" multiple>
@@ -183,17 +202,24 @@
 
     <script>
         // --- DOM Elements ---
-        const splashScreen = document.getElementById('splash-screen');
+        const mainMenuScreen = document.getElementById('main-menu-screen');
+        const photoUploadScreen = document.getElementById('photo-upload-screen');
         const previewScreen = document.getElementById('preview-screen');
         const preferencesScreen = document.getElementById('preferences-screen');
         const loadingScreen = document.getElementById('loading-screen');
         const resultsScreen = document.getElementById('results-screen');
         
+        const healthNutritionBtn = document.getElementById('health-nutrition-btn');
+        const bestSellerBtn = document.getElementById('best-seller-btn');
+        const experienceBtn = document.getElementById('experience-btn');
+        const moodBtn = document.getElementById('mood-btn');
+
         const takePhotoButton = document.getElementById('take-photo-button');
         const selectPhotosButton = document.getElementById('select-photos-button');
         const imageInput = document.getElementById('menu-image-input');
         const imagePreviewGallery = document.getElementById('image-preview-gallery');
         const confirmPhotosButton = document.getElementById('confirm-photos-button');
+        const homeButtonUpload = document.getElementById('home-button-upload');
         const homeButtonPreview = document.getElementById('home-button-preview');
         const homeButtonPrefs = document.getElementById('home-button-prefs');
         const homeButtonResults = document.getElementById('home-button-results');
@@ -210,6 +236,11 @@
         let isShowingTopRecs = true;
         
         // --- Event Listeners ---
+        healthNutritionBtn.addEventListener('click', () => showScreen('photo-upload'));
+        bestSellerBtn.addEventListener('click', () => alert('Feature coming soon!'));
+        experienceBtn.addEventListener('click', () => alert('Feature coming soon!'));
+        moodBtn.addEventListener('click', () => alert('Feature coming soon!'));
+
         takePhotoButton.addEventListener('click', () => {
             imageInput.removeAttribute('multiple');
             imageInput.setAttribute('capture', 'environment');
@@ -220,6 +251,7 @@
             imageInput.removeAttribute('capture');
             imageInput.click();
         });
+        homeButtonUpload.addEventListener('click', resetApp);
         homeButtonPreview.addEventListener('click', resetApp);
         homeButtonPrefs.addEventListener('click', resetApp);
         homeButtonResults.addEventListener('click', resetApp);
@@ -565,9 +597,8 @@
         }
 
         function resetApp() {
-            showScreen('splash');
+            showScreen('main-menu');
             imageInput.value = ''; 
-            selectedImagesData.forEach(d => URL.revokeObjectURL(d.url));
             selectedImagesData = [];
             fullRecommendationData = null;
             imagePreviewGallery.innerHTML = '';
@@ -577,7 +608,7 @@
 
         // --- UI State Changers ---
         function showScreen(screenName) {
-            ['splash', 'preview', 'preferences', 'loading', 'results'].forEach(id => {
+            ['main-menu', 'photo-upload', 'preview', 'preferences', 'loading', 'results'].forEach(id => {
                 document.getElementById(`${id}-screen`).classList.add('hidden');
             });
             document.getElementById(`${screenName}-screen`).classList.remove('hidden');
