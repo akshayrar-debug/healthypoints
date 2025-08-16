@@ -416,11 +416,6 @@
             };
             try {
                 const recommendation = await getBestSellerRecommendation(userPreferences);
-                if (!recommendation.restaurantFound) {
-                    showError("Could not find enough information for this restaurant. Please check the name and location, or check with the restaurant directly.");
-                    showScreen('best-seller-input');
-                    return;
-                }
                 displayResults(recommendation, "Best Seller Recommendations");
                 showScreen('results');
             } catch (error) {
@@ -577,7 +572,7 @@
                 - Dietary Preference: ${preferences.diet}
 
                 **Your Task:**
-                1.  First, determine if you can find sufficient information (reviews, menus) for this restaurant online. If not, set "restaurantFound" to false and return immediately.
+                1.  First, determine if you can find sufficient information for this restaurant online. If not, set "restaurantFound" to false and return immediately. If you find the restaurant but at a different location, set "foundRestaurantName" and "foundRestaurantLocation" to the details of the branch you found.
                 2.  If found, identify the most reviewed, recommended, and best-selling dishes from customer reviews and online menus.
                 3.  Filter these dishes based on the user's dietary preference.
                 4.  Identify up to 3 dishes as "topRecommendations".
@@ -595,6 +590,8 @@
                         type: "OBJECT",
                         properties: {
                             "restaurantFound": { "type": "BOOLEAN" },
+                            "foundRestaurantName": { "type": "STRING" },
+                            "foundRestaurantLocation": { "type": "STRING" },
                             "topRecommendations": {
                                 type: "ARRAY",
                                 items: {
@@ -647,7 +644,18 @@
             const recsToShow = isShowingTopRecs ? fullRecommendationData.topRecommendations : fullRecommendationData.moreRecommendations;
             const additionalRecs = isShowingTopRecs ? fullRecommendationData.moreRecommendations : fullRecommendationData.topRecommendations;
             
-            let html = `
+            let html = '';
+
+            if (fullRecommendationData.foundRestaurantName && fullRecommendationData.foundRestaurantLocation) {
+                html += `
+                    <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded-r-lg">
+                        <p class="font-bold">Note</p>
+                        <p class="text-sm">Showing results for ${fullRecommendationData.foundRestaurantName} in ${fullRecommendationData.foundRestaurantLocation}.</p>
+                    </div>
+                `;
+            }
+
+            html += `
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
                     <h3 class="text-lg font-semibold text-gray-800">Top Picks</h3>
                     <div id="top-recs-list" class="mt-2 space-y-1">
